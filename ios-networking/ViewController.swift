@@ -8,12 +8,23 @@
 import UIKit
 
 class ViewController: UIViewController {
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        // Do any additional setup after loading the view.
+    private let viewModel: PostViewModel
+    
+    init(viewModel: PostViewModel = PostViewModel()) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
     }
-
-
+    
+    required init?(coder: NSCoder) {
+        self.viewModel = PostViewModel()
+        super.init(coder: coder)
+    }
+    
+    override func viewDidLoad() {
+        Task{
+            let posts = try await viewModel.loadInitial()
+            print(posts)
+        }
+    }
+    
 }
-
