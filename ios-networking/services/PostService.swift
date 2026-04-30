@@ -11,10 +11,10 @@ protocol PostServiceProtocol{
 
 
 public class PostService: PostServiceProtocol{
-    private let builder: RequestBuildable
+    private let builder: RequestFactory
     private let performer: AsyncRequestPerformable
     
-    init(builder: RequestBuildable = RequestBuilder(),
+    init(builder: RequestFactory = RequestFactoryImpl(),
          performer: AsyncRequestPerformable = AsyncRequestPerformer()
       ) {
         self.builder = builder
@@ -23,7 +23,7 @@ public class PostService: PostServiceProtocol{
     
     func fetchPosts() async throws -> [Post]{
         guard let request = builder.build(httpMethod: .GET, urlString: "https://jsonplaceholder.typicode.com/posts", parameters: nil, headers: nil, body: nil, timeoutInterval: 30) else{
-            throw NetworkingError.noRequest
+            throw NetworkingError.internalError(.noRequest)
         }
         return try await performer.perform(request: request,decodeTo: [Post].self)
     }

@@ -2,48 +2,79 @@
 //  RequestBuilder.swift
 //  ios-networking
 //
-//  Created by Khanh Anh Kiet on 2026-04-25.
+//  Created by Khanh Anh Kiet on 2026-04-30.
 //
-
 import Foundation
 
-public protocol RequestBuildable{
-    func build(httpMethod: HTTPMethod,
-               urlString: String,
-               parameters: [HTTPParameter]?,
-               headers: [HTTPHeader]?,
-               body: Data?,
-               timeoutInterval: TimeInterval) -> URLRequest?
+public protocol RequestBuilder {
+    func setHttpMethod(_ method: HTTPMethod) -> RequestBuilder
+    func setBaseUrl(_ baseUrl: String) -> RequestBuilder
+    func setParameters(_ parameters: [HTTPParameter]) -> RequestBuilder
+    func setHeaders(_ headers: [HTTPHeader]) -> RequestBuilder
+    func setBody(_ body: HTTPBody) -> RequestBuilder
+    func setTimeoutInterval(_ timeoutInterval: TimeInterval) -> RequestBuilder
+    func build() -> Request?
 }
 
-
-public class RequestBuilder: RequestBuildable{
-    private let parameterEncoder: HTTPParameterEncoder
-    private let headerEncoder: HTTPHeaderEncoder
+public class RequestBuilderImpl: RequestBuilder {
     
-    public init(parameterEncoder: HTTPParameterEncoder = HTTPParameterEncoderImpl(), headerEncoder: HTTPHeaderEncoder = HTTPHeaderEncoderImpl()) {
-        self.parameterEncoder = parameterEncoder
-        self.headerEncoder = headerEncoder
+    private struct ConcreteRequest: Request {
+        let httpMethod: HTTPMethod
+        let urlString: String
+        let parameters: [HTTPParameter]?
+        let headers: [HTTPHeader]?
+        let body: Data?
+        let timeoutInterval: TimeInterval?
     }
     
-    
-    public func build(httpMethod: HTTPMethod, urlString: String, parameters: [HTTPParameter]?, headers: [HTTPHeader]?, body: Data?, timeoutInterval: TimeInterval) -> URLRequest? {
-        
-        guard let url = URL(string: urlString) else{
-            return nil
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = httpMethod.rawValue
-        request.httpBody = body
-        request.timeoutInterval = timeoutInterval
-        
-        if let parameters = parameters {
-            try? parameterEncoder.encodeParameters(for: &request, with: parameters)
-        }
-        if let headers = headers{
-            try? headerEncoder.encodeHeader(for: &request, with: headers)
-        }
-        return request
+    private var httpMethod: HTTPMethod?
+    private var baseUrlString: String?
+    private var parameters: [HTTPParameter]?
+    private var headers: [HTTPHeader]?
+    private var body: HTTPBody?
+    private var timeoutInterval: TimeInterval?
+
+    private let headerEncoder: HTTPHeaderEncoder
+    private let paramEncoder: HTTPParameterEncoder
+
+    public init(headerEncoder: HTTPHeaderEncoder = HTTPHeaderEncoderImpl(),
+                paramEncoder: HTTPParameterEncoder = HTTPParameterEncoderImpl()) {
+        self.headerEncoder = headerEncoder
+        self.paramEncoder = paramEncoder
+    }
+
+    public func setHttpMethod(_ method: HTTPMethod) -> RequestBuilder {
+        self.httpMethod = method
+        return self
+    }
+
+    public func setBaseUrl(_ baseUrl: String) -> RequestBuilder {
+        self.baseUrlString = baseUrl
+        return self
+    }
+
+    public func setParameters(_ parameters: [HTTPParameter]) -> RequestBuilder {
+        self.parameters = parameters
+        return self
+    }
+
+    public func setHeaders(_ headers: [HTTPHeader]) -> RequestBuilder {
+        self.headers = headers
+        return self
+    }
+
+    public func setBody(_ body: HTTPBody) -> RequestBuilder {
+        self.body = body
+        return self
+    }
+
+    public func setTimeoutInterval(_ timeoutInterval: TimeInterval) -> RequestBuilder {
+        self.timeoutInterval = timeoutInterval
+        return self
+    }
+
+    public func build() -> Request? {
+        guard let httpMethod, let baseUrlString else { return nil }
+        return ConcreteRequest(httpMethod: httpMethod, urlString: baseUrlString, parameters: parameters, headers: headers, body: body?.data, timeoutInterval: timeoutInterval)
     }
 }
